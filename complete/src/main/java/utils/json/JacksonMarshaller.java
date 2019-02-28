@@ -1,4 +1,4 @@
-package utils.conversion.excel_to_json.json;
+package utils.json;
 
 import java.io.IOException;
 
@@ -23,6 +23,7 @@ public class JacksonMarshaller {
 		if (jsonString != null) {
 			jsonString = jsonString.replaceAll("\\r", "");
 		}
+		jsonString = JacksonMarshaller.mapJsonString(obj);
 		return jsonString;
 	}
 
@@ -36,11 +37,11 @@ public class JacksonMarshaller {
 			// Convert object to JSON string
 			ObjectMapper mapper = new ObjectMapper();
 			jsonInString = mapper.writeValueAsString(obj);
-			System.out.println(jsonInString);
+//			System.out.println(jsonInString);
 
 			// Convert object to JSON string and pretty print
 			jsonInString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
-			System.out.println(jsonInString);
+//			System.out.println(jsonInString);
 		} catch (JsonGenerationException e) {
 			e.printStackTrace();
 		} catch (JsonMappingException e) {
