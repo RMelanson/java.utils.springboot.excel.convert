@@ -7,8 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map.Entry;
 
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -20,23 +20,29 @@ import utils.json.JacksonMarshaller;
 
 class convert {
 	static void xlsToJSON(File inputFile, File outputFile) {
-		LinkedHashMap<String, ArrayList<?>> xlsFileMap = new LinkedHashMap<String, ArrayList<?>>();
+		LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap = new LinkedHashMap<String, ArrayList<Object>>();
 		HSSFWorkbook workbook = null;
 		try {
 			FileOutputStream fos = new FileOutputStream(outputFile);
 
 			workbook = new HSSFWorkbook(new FileInputStream(inputFile));
 			int numSheets = workbook.getNumberOfSheets();
-
+			/**
 			for (int cnt = 0; cnt < numSheets; cnt++) {
 				HSSFSheet sheet = workbook.getSheetAt(cnt);
 				String SheetName = sheet.getSheetName();
 				System.out.println("Sheet Name = " + SheetName);
-				ArrayList sheetArr = getSheetArr(sheet, fos);
+				ArrayList<?> sheetArr = getSheetArr(sheet);
 				xlsFileMap.put(SheetName, sheetArr);
 			}
-			String jsonString = JacksonMarshaller.mapJsonString(xlsFileMap);
+			**/
+
+			xlsFileReqMap = getSheetMaps(workbook);
+			buildJsonXlsMap(inputFile, xlsFileReqMap);
+			String jsonString = JacksonMarshaller.mapJsonString(xlsFileReqMap);
 			System.out.println(jsonString);
+			fos.write(jsonString.getBytes());
+			fos.close();
 		} catch (FileNotFoundException e) {
 			System.err.println("Exception" + e.getMessage());
 		} catch (IOException e) {
@@ -51,34 +57,86 @@ class convert {
 		}
 	}
 
-	static ArrayList<?> getSheetArr(HSSFSheet sheet, FileOutputStream fos) {
-		ArrayList<Object> sheetArr = new ArrayList<Object>();
+	static void buildJsonXlsMap(File inputFile, LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap) {
+		HSSFWorkbook workbook = null;
 		try {
-			StringBuffer cellDData = new StringBuffer();
-			int rowNum = sheet.getFirstRowNum();
-			Row row = sheet.getRow(rowNum);
-			ArrayList<Object> headerKeys = getHeaderKeyArr(row);
-			while (++rowNum <= sheet.getLastRowNum()) {
-				row = sheet.getRow(rowNum);
-				LinkedHashMap<Object, Object> dataRowMap = getDataRowMap(headerKeys, row);
-				sheetArr.add(rowNum-1,dataRowMap);
-			}
-			fos.write(cellDData.toString().getBytes());
-			fos.close();
+			workbook = new HSSFWorkbook(new FileInputStream(inputFile));
 
+			for (Entry<String, ArrayList<Object>> sheet : xlsFileReqMap.entrySet()) {
+				getSheetArr(workbook, sheet);
+			}
+
+		} catch (FileNotFoundException e) {
+			System.err.println("Exception" + e.getMessage());
 		} catch (IOException e) {
 			System.err.println("Exception" + e.getMessage());
+		} finally {
+			try {
+				workbook.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-		
-		ArrayList<LinkedHashMap<String, String>> lev3 = new ArrayList<LinkedHashMap<String, String>>();
-		LinkedHashMap<String, String> lev4 = new LinkedHashMap<String, String>();
+	}
 
+	static void getSheetArr(HSSFWorkbook workbook, Entry<String, ArrayList<Object>> sheetEntry) {
+		
+		String sheetName = sheetEntry.getKey();
+		System.out.println("Sheet Name = " + sheetName);
+		HSSFSheet sheet = workbook.getSheet(sheetName);
+		
+		int rowNum = sheet.getFirstRowNum();
+		Row row = sheet.getRow(rowNum);
+		ArrayList<Object> headerKeys = (ArrayList<Object>) sheetEntry.getValue().clone();
+		ArrayList<Object> sheetArr = getSheetArr(sheet,headerKeys);
+		sheetEntry.setValue(sheetArr);
+	}
+	
+	static ArrayList<Object> getSheetArr(HSSFSheet sheet, ArrayList<Object> headerKeys) {
+		ArrayList<Object> sheetArr = new ArrayList<Object>();
+		int rowNum = sheet.getFirstRowNum();
+		Row row = sheet.getRow(rowNum);
+		while (++rowNum <= sheet.getLastRowNum()) {
+			row = sheet.getRow(rowNum);
+			LinkedHashMap<Object, Object> dataRowMap = getDataRowMap(headerKeys, row);
+			sheetArr.add(rowNum - 1, dataRowMap);
+		}
 		return sheetArr;
 	}
 
-	private static ArrayList<Object> getHeaderKeyArr(Row row) {
+
+	static LinkedHashMap<String, ArrayList<Object>> getSheetMaps(HSSFWorkbook workbook) {
+		LinkedHashMap<String, ArrayList<Object>> sheetMaps = new LinkedHashMap<String, ArrayList<Object>>();
+		int numSheets = workbook.getNumberOfSheets();
+
+		for (int cnt = 0; cnt < numSheets; cnt++) {
+			HSSFSheet sheet = workbook.getSheetAt(cnt);
+			String sheetName = sheet.getSheetName();
+			System.out.println("Sheet Name = " + sheetName);
+			ArrayList<Object> sheetArr = getHeaderKeyArr(sheet);
+			sheetMaps.put(sheetName, sheetArr);
+		}
+		return sheetMaps;
+	}
+
+	static ArrayList<Object> getSheetArr(HSSFSheet sheet) {
+		ArrayList<Object> sheetArr = new ArrayList<Object>();
+		int rowNum = sheet.getFirstRowNum();
+		Row row = sheet.getRow(rowNum);
+		ArrayList<Object> headerKeys = getHeaderKeyArr(sheet);
+		while (++rowNum <= sheet.getLastRowNum()) {
+			row = sheet.getRow(rowNum);
+			LinkedHashMap<Object, Object> dataRowMap = getDataRowMap(headerKeys, row);
+			sheetArr.add(rowNum - 1, dataRowMap);
+		}
+		return sheetArr;
+	}
+
+	private static ArrayList<Object> getHeaderKeyArr(HSSFSheet sheet) {
 		ArrayList<Object> headerArr = new ArrayList<Object>();
-		Iterator<Cell> cellIterator = row.cellIterator();
+		int rowNum = sheet.getFirstRowNum();
+		Row row = sheet.getRow(rowNum);
 		row.getRowNum();
 		for (int cellNum = row.getFirstCellNum(); cellNum < row.getLastCellNum(); cellNum++) {
 			Cell cell = row.getCell(cellNum);
@@ -120,141 +178,81 @@ class convert {
 		return headerArr;
 	}
 
-	private static LinkedHashMap<Object,Object> getDataRowMap(ArrayList<Object> headerKeys, Row row) {
-		LinkedHashMap<Object,Object> dataMap = new LinkedHashMap<Object,Object>();
+	private static LinkedHashMap<Object, Object> getDataRowMap(ArrayList<Object> headerKeys, Row row) {
+		LinkedHashMap<Object, Object> dataMap = new LinkedHashMap<Object, Object>();
 		row.getRowNum();
 		for (int cellNum = row.getFirstCellNum(); cellNum < row.getLastCellNum(); cellNum++) {
 			Cell cell = row.getCell(cellNum);
-			Object cellObjVal = null;
-			try {
-				switch (cell.getCellType()) {
+			Object cellObjVal = "null";
+			if (cell != null)
+				try {
+					switch (cell.getCellType()) {
 
-				case BOOLEAN:
-					cellObjVal = cell.getBooleanCellValue();
-					break;
+					case BOOLEAN:
+						cellObjVal = cell.getBooleanCellValue();
+						break;
 
-				case NUMERIC:
-					if (DateUtil.isCellDateFormatted(cell)) {
-						SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-						cellObjVal = dateFormat.format(cell.getDateCellValue());
-					} else {
-						cellObjVal = (Double) cell.getNumericCellValue();
-						Double dblVal = (Double) cellObjVal;
-						cellObjVal = dblVal.longValue();
+					case NUMERIC:
+						if (DateUtil.isCellDateFormatted(cell)) {
+							SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+							cellObjVal = dateFormat.format(cell.getDateCellValue());
+						} else {
+							cellObjVal = (Double) cell.getNumericCellValue();
+							Double dblVal = (Double) cellObjVal;
+							cellObjVal = dblVal.longValue();
+						}
+						break;
+
+					case STRING:
+						cellObjVal = cell.getRichStringCellValue().getString();
+						break;
+
+					case BLANK:
+						cellObjVal = "NULL";
+						break;
+					default:
+						break;
 					}
-					break;
-
-				case STRING:
-					cellObjVal = cell.getRichStringCellValue().getString();
-					break;
-
-				case BLANK:
-					cellObjVal = "NULL";
-					break;
-				default:
-					break;
+				} catch (NullPointerException e) {
+					// do something clever with the exception
+					System.out.println("nullException" + e.getMessage());
 				}
-				dataMap.put(headerKeys.get(cellNum), cellObjVal);
-			} catch (NullPointerException e) {
-				// do something clever with the exception
-				System.out.println("nullException" + e.getMessage());
-			}
+			dataMap.put(headerKeys.get(cellNum), cellObjVal);
 		}
 		return dataMap;
 	}
 
-	static void xlsToCVS(File inputFile, File outputFile) {
-		StringBuffer cellDData = new StringBuffer();
+	static void xlsToJSON_OLD(File inputFile, File outputFile) {
+		LinkedHashMap<String, ArrayList<?>> xlsFileMap = new LinkedHashMap<String, ArrayList<?>>();
+		HSSFWorkbook workbook = null;
 		try {
 			FileOutputStream fos = new FileOutputStream(outputFile);
 
-			HSSFWorkbook workbook = new HSSFWorkbook(new FileInputStream(inputFile));
-			HSSFSheet sheet = workbook.getSheetAt(0);
-			Cell cell = null;
-			Row row;
-			Iterator<Row> rowIterator = sheet.iterator();
-			while (rowIterator.hasNext()) {
-				row = rowIterator.next();
-				System.out.println("ROW:-->");
-				Iterator<Cell> cellIterator = row.cellIterator();
-				while (cellIterator.hasNext()) {
-					// System.out.println("true" +cellIterator.hasNext());
-					cell = cellIterator.next();
+			workbook = new HSSFWorkbook(new FileInputStream(inputFile));
+			int numSheets = workbook.getNumberOfSheets();
 
-					System.out.println("CELL:-->" + cell.toString());
-
-					try {
-						switch (cell.getCellType()) {
-
-						case BOOLEAN:
-							cellDData.append(cell.getBooleanCellValue() + ",");
-							System.out.println("boo" + cell.getBooleanCellValue());
-							break;
-
-						case NUMERIC:
-							if (DateUtil.isCellDateFormatted(cell)) {
-
-								// System.out.println(cell.getDateCellValue());
-								SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-								String strCellValue = dateFormat.format(cell.getDateCellValue());
-								// System.out.println("date:"+strCellValue);
-								cellDData.append(strCellValue + ",");
-							} else {
-								System.out.println(cell.getNumericCellValue());
-								Double value = cell.getNumericCellValue();
-								Long longValue = value.longValue();
-								String strCellValue1 = new String(longValue.toString());
-								// System.out.println("number:"+strCellValue1);
-								cellDData.append(strCellValue1 + ",");
-							}
-							// cellDData.append(cell.getNumericCellValue() + ",");
-							// String i=(new java.text.DecimalFormat("0").format(
-							// cell.getNumericCellValue()+"," ));
-							// System.out.println("number"+cell.getNumericCellValue());
-							break;
-
-						case STRING:
-							String out = cell.getRichStringCellValue().getString();
-							cellDData.append(cell.getRichStringCellValue().getString() + ",");
-							// System.out.println("string"+cell.getStringCellValue());
-							break;
-
-						case BLANK:
-							cellDData.append("" + "THIS IS BLANK");
-							System.out.print("THIS IS BLANK");
-							break;
-
-						default:
-							break;
-						}
-					} catch (NullPointerException e) {
-						// do something clever with the exception
-						System.out.println("nullException" + e.getMessage());
-					}
-
-				}
-				workbook.close();
-				int len = cellDData.length() - 1;
-//      System.out.println("length:"+len);
-//      System.out.println("length1:"+cellDData.length());
-				cellDData.replace(cellDData.length() - 1, cellDData.length(), "");
-				cellDData.append("\n");
+			for (int cnt = 0; cnt < numSheets; cnt++) {
+				HSSFSheet sheet = workbook.getSheetAt(cnt);
+				String SheetName = sheet.getSheetName();
+				System.out.println("Sheet Name = " + SheetName);
+				ArrayList<?> sheetArr = getSheetArr(sheet);
+				xlsFileMap.put(SheetName, sheetArr);
 			}
-			// cellDData.append("\n");
-
-//String out=cellDData.toString();
-//System.out.println("res"+out);
-
-//String o = out.substring(0, out.lastIndexOf(","));
-//System.out.println("final"+o);
-			fos.write(cellDData.toString().getBytes());
-//fos.write(cellDDataString.getBytes());
+			String jsonString = JacksonMarshaller.mapJsonString(xlsFileMap);
+			System.out.println(jsonString);
+			fos.write(jsonString.getBytes());
 			fos.close();
-
 		} catch (FileNotFoundException e) {
 			System.err.println("Exception" + e.getMessage());
 		} catch (IOException e) {
 			System.err.println("Exception" + e.getMessage());
+		} finally {
+			try {
+				workbook.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 
