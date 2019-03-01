@@ -26,17 +26,6 @@ class convert {
 			FileOutputStream fos = new FileOutputStream(outputFile);
 
 			workbook = new HSSFWorkbook(new FileInputStream(inputFile));
-			int numSheets = workbook.getNumberOfSheets();
-			/**
-			for (int cnt = 0; cnt < numSheets; cnt++) {
-				HSSFSheet sheet = workbook.getSheetAt(cnt);
-				String SheetName = sheet.getSheetName();
-				System.out.println("Sheet Name = " + SheetName);
-				ArrayList<?> sheetArr = getSheetArr(sheet);
-				xlsFileMap.put(SheetName, sheetArr);
-			}
-			**/
-
 			xlsFileReqMap = getSheetMaps(workbook);
 			buildJsonXlsMap(inputFile, xlsFileReqMap);
 			String jsonString = JacksonMarshaller.mapJsonString(xlsFileReqMap);
@@ -118,19 +107,6 @@ class convert {
 			sheetMaps.put(sheetName, sheetArr);
 		}
 		return sheetMaps;
-	}
-
-	static ArrayList<Object> getSheetArr(HSSFSheet sheet) {
-		ArrayList<Object> sheetArr = new ArrayList<Object>();
-		int rowNum = sheet.getFirstRowNum();
-		Row row = sheet.getRow(rowNum);
-		ArrayList<Object> headerKeys = getHeaderKeyArr(sheet);
-		while (++rowNum <= sheet.getLastRowNum()) {
-			row = sheet.getRow(rowNum);
-			LinkedHashMap<Object, Object> dataRowMap = getDataRowMap(headerKeys, row);
-			sheetArr.add(rowNum - 1, dataRowMap);
-		}
-		return sheetArr;
 	}
 
 	private static ArrayList<Object> getHeaderKeyArr(HSSFSheet sheet) {
@@ -221,39 +197,4 @@ class convert {
 		}
 		return dataMap;
 	}
-
-	static void xlsToJSON_OLD(File inputFile, File outputFile) {
-		LinkedHashMap<String, ArrayList<?>> xlsFileMap = new LinkedHashMap<String, ArrayList<?>>();
-		HSSFWorkbook workbook = null;
-		try {
-			FileOutputStream fos = new FileOutputStream(outputFile);
-
-			workbook = new HSSFWorkbook(new FileInputStream(inputFile));
-			int numSheets = workbook.getNumberOfSheets();
-
-			for (int cnt = 0; cnt < numSheets; cnt++) {
-				HSSFSheet sheet = workbook.getSheetAt(cnt);
-				String SheetName = sheet.getSheetName();
-				System.out.println("Sheet Name = " + SheetName);
-				ArrayList<?> sheetArr = getSheetArr(sheet);
-				xlsFileMap.put(SheetName, sheetArr);
-			}
-			String jsonString = JacksonMarshaller.mapJsonString(xlsFileMap);
-			System.out.println(jsonString);
-			fos.write(jsonString.getBytes());
-			fos.close();
-		} catch (FileNotFoundException e) {
-			System.err.println("Exception" + e.getMessage());
-		} catch (IOException e) {
-			System.err.println("Exception" + e.getMessage());
-		} finally {
-			try {
-				workbook.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	}
-
 }
