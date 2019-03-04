@@ -18,20 +18,19 @@ import org.apache.poi.ss.usermodel.Row;
 
 import utils.json.JacksonMarshaller;
 
-class convert {
-	static void xlsToJSON(File inputFile, File outputFile) {
+class Parse {
+
+	static String xlsToJSON(String inputFile) {
+		String jsonString = null;
+		File iFile = new File(inputFile);
 		LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap = new LinkedHashMap<String, ArrayList<Object>>();
 		HSSFWorkbook workbook = null;
 		try {
-			FileOutputStream fos = new FileOutputStream(outputFile);
-
-			workbook = new HSSFWorkbook(new FileInputStream(inputFile));
+			workbook = new HSSFWorkbook(new FileInputStream(iFile));
 			xlsFileReqMap = getSheetMaps(workbook);
-			buildJsonXlsMap(inputFile, xlsFileReqMap);
-			String jsonString = JacksonMarshaller.mapJsonString(xlsFileReqMap);
+			buildJsonXlsMap(iFile, xlsFileReqMap);
+			jsonString = JacksonMarshaller.mapJsonString(xlsFileReqMap);
 			System.out.println(jsonString);
-			fos.write(jsonString.getBytes());
-			fos.close();
 		} catch (FileNotFoundException e) {
 			System.err.println("Exception" + e.getMessage());
 		} catch (IOException e) {
@@ -44,12 +43,27 @@ class convert {
 				e.printStackTrace();
 			}
 		}
+		return jsonString;
 	}
 
-	static void buildJsonXlsMap(File inputFile, LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap) {
+	static void writeOutput(String outputFile, String jsonString) {
+		try {
+			File oFile = new File(outputFile);
+			FileOutputStream fos = new FileOutputStream(oFile);
+			fos.write(jsonString.getBytes());
+			fos.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Exception" + e.getMessage());
+		} catch (IOException e) {
+			System.err.println("Exception" + e.getMessage());
+		} finally {
+		}
+	}
+
+	private static void buildJsonXlsMap(File iFile, LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap) {
 		HSSFWorkbook workbook = null;
 		try {
-			workbook = new HSSFWorkbook(new FileInputStream(inputFile));
+			workbook = new HSSFWorkbook(new FileInputStream(iFile));
 
 			for (Entry<String, ArrayList<Object>> sheet : xlsFileReqMap.entrySet()) {
 				getSheetArr(workbook, sheet);
@@ -69,7 +83,7 @@ class convert {
 		}
 	}
 
-	static void getSheetArr(HSSFWorkbook workbook, Entry<String, ArrayList<Object>> sheetEntry) {
+	private static void getSheetArr(HSSFWorkbook workbook, Entry<String, ArrayList<Object>> sheetEntry) {
 		
 		String sheetName = sheetEntry.getKey();
 		System.out.println("Sheet Name = " + sheetName);
@@ -82,7 +96,7 @@ class convert {
 		sheetEntry.setValue(sheetArr);
 	}
 	
-	static ArrayList<Object> getSheetArr(HSSFSheet sheet, ArrayList<Object> headerKeys) {
+	private static ArrayList<Object> getSheetArr(HSSFSheet sheet, ArrayList<Object> headerKeys) {
 		ArrayList<Object> sheetArr = new ArrayList<Object>();
 		int rowNum = sheet.getFirstRowNum();
 		Row row = sheet.getRow(rowNum);
@@ -94,8 +108,7 @@ class convert {
 		return sheetArr;
 	}
 
-
-	static LinkedHashMap<String, ArrayList<Object>> getSheetMaps(HSSFWorkbook workbook) {
+	private static LinkedHashMap<String, ArrayList<Object>> getSheetMaps(HSSFWorkbook workbook) {
 		LinkedHashMap<String, ArrayList<Object>> sheetMaps = new LinkedHashMap<String, ArrayList<Object>>();
 		int numSheets = workbook.getNumberOfSheets();
 
