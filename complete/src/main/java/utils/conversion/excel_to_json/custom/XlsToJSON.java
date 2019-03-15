@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 
 import utils.json.JacksonMarshaller;
 
-public class XlsToJason {
+public class XlsToJSON {
 	static String EOLN = "\n";
 	static String defaultDirectory = "C:\\Dev\\microservices\\data\\";
 	static String defaultFileName = "Default";
