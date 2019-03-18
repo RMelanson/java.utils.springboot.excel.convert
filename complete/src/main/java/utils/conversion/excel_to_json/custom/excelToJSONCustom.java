@@ -211,16 +211,13 @@ class Parse {
 					// do something clever with the exception
 					System.out.println("nullException" + e.getMessage());
 				}
-			if (cellNum != 1)
-			{
-			   dataMap.put(headerKeys.get(cellNum), cellObjVal);
-			}
-			else
-			{
-				   ArrayList<Object> argsArr = new ArrayList<Object>();
-				   argsMap = new LinkedHashMap<Object, Object>();
-				   dataMap.put("args", argsArr);
-				   argsMap.put(headerKeys.get(cellNum), cellObjVal);
+			if (cellNum != 1) {
+				dataMap.put(headerKeys.get(cellNum), cellObjVal);
+			} else {  // Create Paramater Array List
+				ArrayList<Object> argsArr = new ArrayList<Object>();
+				argsMap = new LinkedHashMap<Object, Object>();
+				dataMap.put("args", argsArr);
+				argsMap.put(headerKeys.get(cellNum), cellObjVal);
 			}
 		}
 		return dataMap;
