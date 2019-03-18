@@ -32,12 +32,16 @@ class Parse {
 			jsonString = JacksonMarshaller.mapJsonString(xlsFileReqMap);
 			System.out.println(jsonString);
 		} catch (FileNotFoundException e) {
-			System.err.println("Exception" + e.getMessage());
+			System.err.println("FileNotFoundException" + e.getMessage());
 		} catch (IOException e) {
+			System.err.println("IOException" + e.getMessage());
+		} catch (Exception e) {
 			System.err.println("Exception" + e.getMessage());
 		} finally {
 			try {
-				workbook.close();
+				if (workbook != null) {
+					workbook.close();
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -84,18 +88,18 @@ class Parse {
 	}
 
 	private static void getSheetArr(HSSFWorkbook workbook, Entry<String, ArrayList<Object>> sheetEntry) {
-		
+
 		String sheetName = sheetEntry.getKey();
-		System.out.println("Sheet Name = " + sheetName);
+//		System.out.println("Sheet Name = " + sheetName);
 		HSSFSheet sheet = workbook.getSheet(sheetName);
-		
+
 		int rowNum = sheet.getFirstRowNum();
 		Row row = sheet.getRow(rowNum);
 		ArrayList<Object> headerKeys = (ArrayList<Object>) sheetEntry.getValue().clone();
-		ArrayList<Object> sheetArr = getSheetArr(sheet,headerKeys);
+		ArrayList<Object> sheetArr = getSheetArr(sheet, headerKeys);
 		sheetEntry.setValue(sheetArr);
 	}
-	
+
 	private static ArrayList<Object> getSheetArr(HSSFSheet sheet, ArrayList<Object> headerKeys) {
 		ArrayList<Object> sheetArr = new ArrayList<Object>();
 		int rowNum = sheet.getFirstRowNum();
@@ -115,7 +119,7 @@ class Parse {
 		for (int cnt = 0; cnt < numSheets; cnt++) {
 			HSSFSheet sheet = workbook.getSheetAt(cnt);
 			String sheetName = sheet.getSheetName();
-			System.out.println("Sheet Name = " + sheetName);
+//			System.out.println("Sheet Name = " + sheetName);
 			ArrayList<Object> sheetArr = getHeaderKeyArr(sheet);
 			sheetMaps.put(sheetName, sheetArr);
 		}
@@ -169,6 +173,7 @@ class Parse {
 
 	private static LinkedHashMap<Object, Object> getDataRowMap(ArrayList<Object> headerKeys, Row row) {
 		LinkedHashMap<Object, Object> dataMap = new LinkedHashMap<Object, Object>();
+		LinkedHashMap<Object, Object> argsMap = null;
 		row.getRowNum();
 		for (int cellNum = row.getFirstCellNum(); cellNum < row.getLastCellNum(); cellNum++) {
 			Cell cell = row.getCell(cellNum);
@@ -206,7 +211,17 @@ class Parse {
 					// do something clever with the exception
 					System.out.println("nullException" + e.getMessage());
 				}
-			dataMap.put(headerKeys.get(cellNum), cellObjVal);
+			if (cellNum != 1)
+			{
+			   dataMap.put(headerKeys.get(cellNum), cellObjVal);
+			}
+			else
+			{
+				   ArrayList<Object> argsArr = new ArrayList<Object>();
+				   argsMap = new LinkedHashMap<Object, Object>();
+				   dataMap.put("args", argsArr);
+				   argsMap.put(headerKeys.get(cellNum), cellObjVal);
+			}
 		}
 		return dataMap;
 	}
