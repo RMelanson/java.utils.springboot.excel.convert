@@ -213,7 +213,7 @@ class Parse {
 				}
 			if (cellNum != 1) {
 				dataMap.put(headerKeys.get(cellNum), cellObjVal);
-			} else {  // Create Paramater Array List
+			} else {  // Create Parameter Array List
 				ArrayList<Object> argsArr = new ArrayList<Object>();
 				argsMap = new LinkedHashMap<Object, Object>();
 				dataMap.put("args", argsArr);
