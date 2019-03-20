@@ -16,17 +16,18 @@ public class XlsToJSON {
 	static String jsonType = ".json";
 	static String defaultBuildMapName = "jsonRequestALL";
 	static String inputXLSFile = defaultDirectory + defaultFileName + defaultInputType;
-	static String outputJSONFile = defaultDirectory + defaultFileName + jsonType;
-	static String sheetName = null;
+	static String outputJSONFile = null;
+	static String sheet = null;
 	static String buildMap = defaultDirectory + defaultBuildMapName + jsonType;
+	static Boolean dump = false;
 
 	public static void main(String[] args) throws IOException {
 		processArgs(args);
 		String jsonString;
-		if (sheetName == null)
+		if (sheet == null)
 		   jsonString = Parse.xlsToJSON_Str(inputXLSFile);
 		else
-		   jsonString = Parse.xlsToJSON_Str(inputXLSFile,sheetName);
+		   jsonString = Parse.xlsToJSON_Str(inputXLSFile,sheet);
 		Parse.writeOutput(outputJSONFile, jsonString);
 	}
 
@@ -38,18 +39,26 @@ public class XlsToJSON {
 		}
 		for (int idx = 0; idx < parmsCount; idx += 2) {
 			switch (parms[idx]) {
+			case "-inputFile":
 			case "-i":
 				inputXLSFile = parms[idx + 1];
 				break;
 			case "-o":
+			case "-outputFile":
 				outputJSONFile = parms[idx + 1];
 				break;
-			case "-d":
+			case "-b":
+			case "-buildFile":
 				buildMap = parms[idx + 1];
 				readBuildFile(buildMap);
 				break;
+			case "-d":
+			case "-dump":
+				dump=true;
+				break;
 			case "-s":
-				sheetName = parms[idx + 1];
+			case "-sheet":
+				sheet = parms[idx + 1];
 				break;
 			default:
 				usage();
@@ -69,12 +78,8 @@ public class XlsToJSON {
 	}
 
 	private static void setBuildFileArgs(LinkedHashMap<?, ?> builderMap) {
-//		LinkedHashMap<?, ?> builder = readBuildFile(buildFile);
-
-		String inputFile = (String) builderMap.get("INPUT_FILE");
-		String outputFile = (String) builderMap.get("OUTPUT_FILE");
-//		LinkedHashMap<?, ?> sheets = (LinkedHashMap<?, ?>) builder.get("SHEETS");
-//		Object sheets2 = (LinkedHashMap<?, ?>) builder.get("SHEETS");
+		inputXLSFile = (String) builderMap.get("INPUT_FILE");
+		outputJSONFile = (String) builderMap.get("OUTPUT_FILE");
 	}
 
 	private static LinkedHashMap<?, ?> readBuildFile(String buildFile) {
@@ -90,7 +95,7 @@ public class XlsToJSON {
 			if (JacksonMarshaller.isValidJSON(strContent.toString())) {
 				builderMap = (LinkedHashMap<?, ?>) JacksonMarshaller.jsonStringToClass(strContent.toString(),
 						LinkedHashMap.class);
-				setBuildFileArgs(builderMap);
+//				setBuildFileArgs(builderMap);
 			}
 			inputBuildFile.close();
 		} catch (FileNotFoundException e) {
