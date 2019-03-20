@@ -15,14 +15,19 @@ public class XlsToJSON {
 	static String defaultInputType = ".xls";
 	static String jsonType = ".json";
 	static String defaultBuildMapName = "jsonRequestALL";
-	static String inputFile = defaultDirectory + defaultFileName + defaultInputType;
-	static String outputFile = defaultDirectory + defaultFileName + jsonType;
+	static String inputXLSFile = defaultDirectory + defaultFileName + defaultInputType;
+	static String outputJSONFile = defaultDirectory + defaultFileName + jsonType;
+	static String sheetName = null;
 	static String buildMap = defaultDirectory + defaultBuildMapName + jsonType;
 
 	public static void main(String[] args) throws IOException {
 		processArgs(args);
-		String jsonString = Parse.xlsToJSON(inputFile);
-//		Parse.writeOutput(outputFile, jsonString);
+		String jsonString;
+		if (sheetName == null)
+		   jsonString = Parse.xlsToJSON_Str(inputXLSFile);
+		else
+		   jsonString = Parse.xlsToJSON_Str(inputXLSFile,sheetName);
+		Parse.writeOutput(outputJSONFile, jsonString);
 	}
 
 	private static void processArgs(String[] parms) {
@@ -34,14 +39,17 @@ public class XlsToJSON {
 		for (int idx = 0; idx < parmsCount; idx += 2) {
 			switch (parms[idx]) {
 			case "-i":
-				inputFile = parms[idx + 1];
+				inputXLSFile = parms[idx + 1];
 				break;
 			case "-o":
-				outputFile = parms[idx + 1];
+				outputJSONFile = parms[idx + 1];
 				break;
 			case "-d":
 				buildMap = parms[idx + 1];
 				readBuildFile(buildMap);
+				break;
+			case "-s":
+				sheetName = parms[idx + 1];
 				break;
 			default:
 				usage();

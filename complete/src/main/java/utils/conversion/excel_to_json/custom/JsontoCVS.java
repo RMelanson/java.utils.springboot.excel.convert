@@ -22,7 +22,7 @@ public class JsontoCVS {
 	public static void main(String[] args) throws IOException {
 		processArgs(args);
 		processBuildFile(buildMap);
-		String jsonString = Parse.xlsToJSON(inputFile);
+		String jsonString = Parse.xlsToJSON_Str(inputFile);
 		Parse.writeOutput(outputFile, jsonString);
 	}
 

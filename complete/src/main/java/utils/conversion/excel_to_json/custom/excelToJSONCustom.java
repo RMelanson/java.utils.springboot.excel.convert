@@ -20,8 +20,27 @@ import utils.json.JacksonMarshaller;
 
 class Parse {
 
-	static String xlsToJSON(String inputFile) {
+	public static String xlsToJSON_Str(String inputXLSFile, String sheetName) {
 		String jsonString = null;
+		ArrayList<Object> xlsFileReqArr = xlsToJSON_Obj(inputXLSFile, sheetName);
+		jsonString = JacksonMarshaller.mapJsonString(xlsFileReqArr);
+		return jsonString;
+	}
+
+	static String xlsToJSON_Str(String inputXLSFile) {
+		String jsonString = null;
+		LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap = xlsToJSON_Obj(inputXLSFile);
+		jsonString = JacksonMarshaller.mapJsonString(xlsFileReqMap);
+		return jsonString;
+	}
+	
+	public static ArrayList<Object> xlsToJSON_Obj(String inputXLSFile, String sheetName) {
+		LinkedHashMap<String, ArrayList<Object>> completeExcel = xlsToJSON_Obj(inputXLSFile);
+		ArrayList<Object> sheetArr = completeExcel.get(sheetName);
+		return sheetArr;
+	}
+
+	static LinkedHashMap<String, ArrayList<Object>> xlsToJSON_Obj(String inputFile) {
 		File iFile = new File(inputFile);
 		LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap = new LinkedHashMap<String, ArrayList<Object>>();
 		HSSFWorkbook workbook = null;
@@ -29,14 +48,15 @@ class Parse {
 			workbook = new HSSFWorkbook(new FileInputStream(iFile));
 			xlsFileReqMap = getSheetMaps(workbook);
 			buildJsonXlsMap(iFile, xlsFileReqMap);
-			jsonString = JacksonMarshaller.mapJsonString(xlsFileReqMap);
-			System.out.println(jsonString);
 		} catch (FileNotFoundException e) {
 			System.err.println("FileNotFoundException" + e.getMessage());
+			System.out.println("ERROR FileNotFoundException: "+e.getMessage());
 		} catch (IOException e) {
 			System.err.println("IOException" + e.getMessage());
+			System.out.println("ERROR IOException: "+e.getMessage());
 		} catch (Exception e) {
 			System.err.println("Exception" + e.getMessage());
+			System.out.println("ERROR Exception: "+e.getMessage());
 		} finally {
 			try {
 				if (workbook != null) {
@@ -47,7 +67,7 @@ class Parse {
 				e.printStackTrace();
 			}
 		}
-		return jsonString;
+		return xlsFileReqMap;
 	}
 
 	static void writeOutput(String outputFile, String jsonString) {
@@ -103,11 +123,19 @@ class Parse {
 	private static ArrayList<Object> getSheetArr(HSSFSheet sheet, ArrayList<Object> headerKeys) {
 		ArrayList<Object> sheetArr = new ArrayList<Object>();
 		int rowNum = sheet.getFirstRowNum();
-		Row row = sheet.getRow(rowNum);
+		Row currRow = sheet.getRow(rowNum);
+		LinkedHashMap<Object, Object> prevDataRowMap = null;
 		while (++rowNum <= sheet.getLastRowNum()) {
-			row = sheet.getRow(rowNum);
-			LinkedHashMap<Object, Object> dataRowMap = getDataRowMap(headerKeys, row);
-			sheetArr.add(rowNum - 1, dataRowMap);
+			currRow = sheet.getRow(rowNum);
+			LinkedHashMap<Object, Object> currDataRowMap = getDataRowMap(headerKeys, currRow);
+			if (currDataRowMap.get("function") != null) {
+			    sheetArr.add(currDataRowMap);
+				prevDataRowMap = currDataRowMap;
+			}
+			else {  // add to previous row args
+				ArrayList<Object> args = (ArrayList<Object>) prevDataRowMap.get("args");
+				args.add(currDataRowMap);
+			}
 		}
 		return sheetArr;
 	}
@@ -174,11 +202,12 @@ class Parse {
 	private static LinkedHashMap<Object, Object> getDataRowMap(ArrayList<Object> headerKeys, Row row) {
 		LinkedHashMap<Object, Object> dataMap = new LinkedHashMap<Object, Object>();
 		LinkedHashMap<Object, Object> argsMap = null;
+		Boolean newFunction = true;
 		row.getRowNum();
 		for (int cellNum = row.getFirstCellNum(); cellNum < row.getLastCellNum(); cellNum++) {
 			Cell cell = row.getCell(cellNum);
 			Object cellObjVal = "null";
-			if (cell != null)
+			if (cell != null) {
 				try {
 					switch (cell.getCellType()) {
 
@@ -212,13 +241,28 @@ class Parse {
 				} catch (Exception e) { // Do something clever with the exception
 					System.out.println("nullException" + e.getMessage());
 				}
-			if (cellNum != 1) {
-				dataMap.put(headerKeys.get(cellNum), cellObjVal);
-			} else { // Create Parameter Array List
-				ArrayList<Object> argsArr = new ArrayList<Object>();
-				argsMap = new LinkedHashMap<Object, Object>();
-				dataMap.put("args", argsArr);
-				argsMap.put(headerKeys.get(cellNum), cellObjVal);
+			}
+			cellObjVal = cellObjVal.toString();
+			String key = (String) headerKeys.get(cellNum);
+			if (key.toUpperCase().equals("RET") || key.toUpperCase().equals("FUNCTION")) {
+				if (!cellObjVal.toString().toUpperCase().equals("NULL"))
+					dataMap.put(key, cellObjVal);
+				else
+					newFunction = false;
+					
+			} else {
+				if (newFunction && cellNum == 1) { // Create Parameter Array List
+					ArrayList<Object> argsArr = new ArrayList<Object>();
+					argsMap = new LinkedHashMap<Object, Object>();
+					argsArr.add(argsMap);
+					dataMap.put("args", argsArr);
+				}
+				if (!cellObjVal.toString().toUpperCase().equals("NULL"))
+					if(newFunction)
+					   argsMap.put(key, cellObjVal);
+					else
+					   dataMap.put(key, cellObjVal);
+						
 			}
 		}
 		return dataMap;
