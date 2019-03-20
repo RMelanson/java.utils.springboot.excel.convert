@@ -28,7 +28,9 @@ public class XlsToJSON {
 		   jsonString = Parse.xlsToJSON_Str(inputXLSFile);
 		else
 		   jsonString = Parse.xlsToJSON_Str(inputXLSFile,sheet);
-		Parse.writeOutput(outputJSONFile, jsonString);
+		if (dump || outputJSONFile == null)
+			System.out.println(jsonString);
+        Parse.writeOutput(outputJSONFile, jsonString);
 	}
 
 	private static void processArgs(String[] parms) {

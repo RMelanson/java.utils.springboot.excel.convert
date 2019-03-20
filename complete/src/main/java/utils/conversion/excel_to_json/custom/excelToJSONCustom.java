@@ -71,20 +71,17 @@ class Parse {
 	}
 
 	static void writeOutput(String outputFile, String jsonString) {
-		if (outputFile == null)
-			System.out.println(jsonString);
-		else
-			try {
-				File oFile = new File(outputFile);
-				FileOutputStream fos = new FileOutputStream(oFile);
-				fos.write(jsonString.getBytes());
-				fos.close();
-			} catch (FileNotFoundException e) {
-				System.err.println("Exception" + e.getMessage());
-			} catch (IOException e) {
-				System.err.println("Exception" + e.getMessage());
-			} finally {
-			}
+		try {
+			File oFile = new File(outputFile);
+			FileOutputStream fos = new FileOutputStream(oFile);
+			fos.write(jsonString.getBytes());
+			fos.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Exception" + e.getMessage());
+		} catch (IOException e) {
+			System.err.println("Exception" + e.getMessage());
+		} finally {
+		}
 	}
 
 	private static void buildJsonXlsMap(File iFile, LinkedHashMap<String, ArrayList<Object>> xlsFileReqMap) {
